@@ -1,0 +1,15 @@
+@charset "UTF-8";
+
+body {
+  display: flex;
+  min-height: calc(100vh);
+  flex-direction: column;
+}
+  
+#wrapper {
+  flex: 1;
+}
+
+.tight-form {
+	width: 500px
+}
