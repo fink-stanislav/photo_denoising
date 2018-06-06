@@ -1,7 +1,7 @@
 
 from flask import Flask
 
-from appname.controllers.main import main
+from webgui.controllers.main import main
 
 def create_app():
 
