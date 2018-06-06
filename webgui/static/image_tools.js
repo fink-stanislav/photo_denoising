@@ -60,6 +60,7 @@ $(document).ready(function() {
 	        data: formData,
 	        success: function (data) {
 	            $("#remove_noise").removeClass("is-loading")
+	            $("#download").attr("href", 'download/' + data['result'])
 	        },
 	        error: function (data) {
 	            $("#remove_noise").removeClass("is-loading")

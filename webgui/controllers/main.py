@@ -6,7 +6,7 @@ import numpy as np
 
 import time
 from denoising.deep_image_prior import NoiseGenerator
-from flask.helpers import send_file
+from flask.helpers import send_file, send_from_directory
 import tempfile
 
 main = Blueprint('main', __name__)
@@ -68,3 +68,7 @@ def get_image(filename):
     mime = 'image/{}'.format(ext)
 
     return send_file(filepath, mimetype=mime)
+
+@main.route('/download/<filename>', methods=['GET'])
+def download(filename):
+    return send_from_directory(directory=tempfile.gettempdir(), filename=filename)

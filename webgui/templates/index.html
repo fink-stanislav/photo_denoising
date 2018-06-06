@@ -4,6 +4,7 @@
 
   <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
   <script src="{{url_for('static', filename='image_tools.js')}}"></script>
+  <script defer src="https://use.fontawesome.com/releases/v5.0.7/js/all.js" type="text/javascript"></script>
 
   <section class="hero is-primary">
     <div class="hero-body">
@@ -38,7 +39,7 @@
 
       <form id="add_noise_form" action="/add_noise" enctype="multipart/form-data" method="POST">
  	    <div class="field is-grouped is-grouped-centered">
-          <div class="control file">
+          <div class="file is-link control">
             <label class="file-label">
               <input class="file-input" type="file" name="img" onchange="readURL(this);">
               <span class="file-cta">
@@ -75,6 +76,14 @@
  	    <div class="field is-grouped is-grouped-centered">
           <div class="control">
             <a id="remove_noise" class="button is-link">Remove noise</a>
+          </div>
+          <div class="control">
+            <a id="download" class="button is-link" download="">
+              <span class="file-icon">
+                <i class="fas fa-download"></i>
+              </span>
+              Download
+            </a>
           </div>
         </div>
       </form>
