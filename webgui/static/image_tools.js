@@ -19,7 +19,6 @@ function readURL(input) {
 $(document).ready(function() {
 
 	$("#add_noise").click(function() {
-		//$("#result_of_analysis").html('unknown')
 		$("#add_noise").addClass("is-loading")
 		$("#add_noise_form").submit()
 	})
@@ -33,12 +32,12 @@ $(document).ready(function() {
 	        type: 'POST',
 	        data: formData,
 	        success: function (data) {
-	            //$("#result_of_noising").html(data)
 	            $("#add_noise").removeClass("is-loading")
+	            $("#noisy_image").attr("src", 'get_image/' + data['noisy_image'])
 	        },
 	        error: function (data) {
-	            //$("#result_of_noising").html("Noising failed")
 	            $("#add_noise").removeClass("is-loading")
+	            $("#noisy_image").attr("src", "../static/placeholder_224.png")
 	        },
 	        cache: false,
 	        contentType: false,
@@ -47,7 +46,6 @@ $(document).ready(function() {
 	});
 	
 	$("#remove_noise").click(function() {
-		//$("#result_of_analysis").html('unknown')
 		$("#remove_noise").addClass("is-loading")
 		$("#remove_noise_form").submit()
 	})
@@ -61,11 +59,9 @@ $(document).ready(function() {
 	        type: 'POST',
 	        data: formData,
 	        success: function (data) {
-	            //$("#result_of_noising").html(data)
 	            $("#remove_noise").removeClass("is-loading")
 	        },
 	        error: function (data) {
-	            //$("#result_of_noising").html("Noising failed")
 	            $("#remove_noise").removeClass("is-loading")
 	        },
 	        cache: false,

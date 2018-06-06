@@ -27,11 +27,11 @@
 	      
       <div class="columns is-centered">
         <div class="column is-narrow">
-          <img id="image" src="{{url_for('static', filename='placeholder_224.png')}}" alt="Image to add noise to">
+          <img id="image" src="{{url_for('static', filename='placeholder_224.png')}}" height="224" width="224" alt="Image to add noise to">
           <p>Clear image</p>
         </div>
         <div class="column is-narrow">
-          <img id="noisy_image" src="{{url_for('static', filename='placeholder_224.png')}}" alt="Image with noise">
+          <img id="noisy_image" src="{{url_for('static', filename='placeholder_224.png')}}" height="224" width="224" alt="Image with noise">
           <p>Image with noise</p>
         </div>
       </div>
@@ -67,7 +67,7 @@
 	  </h2>
 	  <div class="columns is-centered">
         <div class="column is-narrow">
-          <img id="image" src="{{url_for('static', filename='placeholder_224.png')}}" alt="Denoised image">
+          <img id="image" src="{{url_for('static', filename='placeholder_224.png')}}" alt="Denoised image" height="224" width="224">
           <p>Denoised image</p>
         </div>
       </div>
