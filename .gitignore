@@ -1,0 +1,13 @@
+.pydevproject
+.project
+.metadata
+.settings/
+
+results/
+
+*.pyc
+
+build/**
+dist/**
+ats.egg-info/**
+
