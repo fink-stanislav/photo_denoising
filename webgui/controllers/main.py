@@ -5,9 +5,9 @@ from PIL import Image
 import numpy as np
 
 import time
-from denoising.deep_image_prior import NoiseGenerator
 from flask.helpers import send_file, send_from_directory
 import tempfile
+import denoising.image_utils as iu
 
 main = Blueprint('main', __name__)
 
@@ -37,10 +37,8 @@ def add_noise():
     imagefile.save(filepath)
     session['clear_image'] = filepath
 
-    pil = Image.open(filepath)
-    ng = NoiseGenerator()
-    mask, img = ng.gaussian(pil)
-    pil_noisy = Image.fromarray(np.uint8(img * 255))
+    tensor = iu.file_to_tensor(filepath)
+    mask, noisy = iu.generate_noise(tensor)
 
     if ext is not None:
         filename = '{}_noisy.{}'.format(filename, ext)
@@ -48,8 +46,7 @@ def add_noise():
         filename = '{}_noisy.png'.format(filename)
 
     filepath = '{}/{}'.format(tempfile.gettempdir(), filename)
-
-    pil_noisy.save(filepath)
+    iu.tensor_to_file(noisy, filepath)
 
     json_dict = {'noisy_image': filename}
 

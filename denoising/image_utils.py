@@ -14,11 +14,11 @@ def pil_to_tensor(pil, use_cuda=True):
     """
     Accepts a PIL image, return a torch tensor
     """
-    pil_to_tensor = torchvision.transforms.Compose([torchvision.transforms.ToTensor()])
+    transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor()])
     if use_cuda:
-        tensor = pil_to_tensor(pil).cuda()
+        tensor = transform(pil).cuda()
     else:
-        tensor = pil_to_tensor(pil)
+        tensor = transform(pil)
     return tensor.view([1]+list(tensor.shape))
 
 def tensor_to_file(tensor, filename, use_cuda=True):
@@ -35,8 +35,8 @@ def tensor_to_pil(tensor, use_cuda=True):
     tensor = tensor.view(tensor.shape[1:])
     if use_cuda:
         tensor = tensor.cpu()
-    tensor_to_pil = torchvision.transforms.Compose([torchvision.transforms.ToPILImage()])
-    pil = tensor_to_pil(tensor)
+    transform = torchvision.transforms.Compose([torchvision.transforms.ToPILImage()])
+    pil = transform(tensor)
     return pil
 
 def generate_noise(tensor, prop=0.5, use_cuda=True):
