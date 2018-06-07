@@ -76,4 +76,12 @@ $(document).ready(function() {
 		$("#intencity_value").html(this.value + ' %')
 	})
 
+	$("#min_loss").on('input', function () {
+		$("#min_loss_value").html(this.value)
+	})
+
+	$("#steps").on('input', function () {
+		$("#steps_value").html(this.value)
+	})
+
 })

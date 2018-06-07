@@ -48,6 +48,7 @@
             </div>
           </div>
           <div class="field column">
+          <label class="label">Noise, %</label>
             <input id="intencity" name="intencity" type="range" min="1" max="99" step="1" value="50">
             <span id="intencity_value">50 %</span>
           </div>
@@ -75,13 +76,23 @@
           <img id="denoised_image" src="{{url_for('static', filename='placeholder_224.png')}}" alt="Denoised image" height="224" width="224">
           <p>Denoised image</p>
         </div>
-      </div>
-      <form id="remove_noise_form" action="/remove_noise" enctype="multipart/form-data" method="POST">
- 	    <div class="field is-grouped is-grouped-centered">
-          <div class="control">
+
+		<div class="column is-narrow">
+          <form id="remove_noise_form" action="/remove_noise" enctype="multipart/form-data" method="POST">
+            <div class="field column">
+              <label class="label">Min loss to stop</label>
+              <input id="min_loss" name="min_loss" type="range" min="1" max="5000" step="1" value="500">
+              <span id="min_loss_value">500</span>
+            </div>
+            <div class="field column">
+              <label class="label">Number of steps</label>
+              <input id="steps" name="steps" type="range" min="1" max="25000" step="1" value="5000">
+              <span id="steps_value">5000</span>
+            </div>
+          </form>
+          
+          <div class="field">
             <a id="remove_noise" class="button is-link">Remove noise</a>
-          </div>
-          <div class="control">
             <a id="download" class="button is-link" download="">
               <span class="file-icon">
                 <i class="fas fa-download"></i>
@@ -90,7 +101,8 @@
             </a>
           </div>
         </div>
-      </form>
+        
+      </div>
     </div>
   </section>
 
