@@ -1,7 +1,7 @@
 
 import unittest
 
-from denoising.deep_image_prior import NoiseGenerator
+from denoising.deep_image_prior import NoiseGenerator, Denoiser
 from PIL import Image
 from skimage.util.dtype import img_as_float
 import numpy as np
@@ -37,6 +37,12 @@ class TestNoiseGenerator(unittest.TestCase):
         
         mask *= 255
         Image.fromarray(np.uint8(mask)).save('test_results/mask_salt.png')
+
+    def test_zeroing(self):
+        d = Denoiser(None)
+        truth = d.jpg_to_tensor('../results/bunny_512.jpg')
+        mask, deconstructed = d.generate_noise(truth)
+        print(mask)
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']

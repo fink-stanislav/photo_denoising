@@ -4,64 +4,17 @@ import torch.nn as nn
 from torch.autograd import Variable
 import torch.nn.functional as F
 import torchvision
+
 from PIL import Image
-import skimage
-from skimage.measure.simple_metrics import compare_psnr
-import numpy as np
-
-class NoiseGenerator(object):
-
-    def __init__(self):
-        self.params = {
-            'gaussian': {'var': 0.01, 'mode': 'gaussian', 'mean': 0}, 
-            'poisson': {'mode': 'poisson'},
-            'salt': {'mode': 'salt', 'amount': 0.5},
-            'pepper': {'mode': 'pepper', 'amount': 0.5},
-            's&p': {'mode': 's&p', 'amount': 0.5, 'salt_vs_pepper': 0.5}, 
-            'speckle': {'var': 0.1, 'mode': 'speckle', 'mean': 0}
-        }
-
-    def _add_noise(self, params):
-        noisy_img = skimage.util.random_noise(**params)
-        mask = params['image'] - noisy_img
-        return mask, noisy_img
-
-    def _prepare_params(self, img, name):
-        params = self.params[name]
-        np_image = np.asarray(img, dtype="float")
-        params['image'] = np_image / 255
-        return params
-
-    def gaussian(self, img):
-        params = self._prepare_params(img, 'gaussian')
-        mask, noisy_img = self._add_noise(params)
-        return mask, noisy_img
-
-    def poisson(self, img):
-        params = self._prepare_params(img, 'poisson')
-        mask, noisy_img = self._add_noise(params)
-        return mask, noisy_img
-    
-    def salt(self, img):
-        params = self._prepare_params(img, 'salt')
-        mask, noisy_img = self._add_noise(params)
-        mask[mask != 0] = 1
-        return mask, noisy_img
-
-    def pepper(self, img):
-        params = self._prepare_params(img, 'pepper')
-        mask, noisy_img = self._add_noise(params)
-        mask[mask != 1] = 0
-        return mask, noisy_img
+import denoising.image_utils as iu
 
 class Denoiser(object):
-    
-    def __init__(self, output_dir, use_cuda=True):
+
+    def __init__(self, num_steps=5001, min_loss=500, use_cuda=True):
         self.use_cuda = use_cuda
-        self.output_dir = output_dir
         self.sigma = 1./30
-        self.num_steps = 25001
-        self.save_frequency = 100
+        self.num_steps = num_steps
+        self.min_loss = min_loss
 
     def _np_to_tensor(self, np_data):
         np_to_tensor = torchvision.transforms.Compose([torchvision.transforms.ToTensor()])
@@ -71,70 +24,27 @@ class Denoiser(object):
             tensor = np_to_tensor(np_data)
         return tensor.view([1] + list(tensor.shape))
 
-    #accept a file path to a jpg, return a torch tensor
-    def jpg_to_tensor(self, filepath):
-        pil = Image.open(filepath)
-        pil_to_tensor = torchvision.transforms.Compose([torchvision.transforms.ToTensor()])
-        if self.use_cuda:
-            tensor = pil_to_tensor(pil).cuda()
-        else:
-            tensor = pil_to_tensor(pil)
-        return tensor.view([1]+list(tensor.shape))
-    
-    def jpg_to_tensor_np(self, filepath):
-        pil = Image.open(filepath)
-        data = np.asarray(pil, dtype="float")
-        data = data / 255
-        return self._np_to_tensor(data)
-
-    #accept a torch tensor, convert it to a jpg at a certain path
-    def tensor_to_jpg(self, tensor, filename):
-        tensor = tensor.view(tensor.shape[1:])
-        if self.use_cuda:
-            tensor = tensor.cpu()
-        tensor_to_pil = torchvision.transforms.Compose([torchvision.transforms.ToPILImage()])
-        pil = tensor_to_pil(tensor)
-        pil.save(filename)
-    
-    #function which zeros out a random proportion of pixels from an image tensor.
-    def zero_out_pixels(self, tensor, prop=0.5):
-        if self.use_cuda:
-            mask = torch.rand([1]+[1] + list(tensor.shape[2:])).cuda()
-        else:
-            mask = torch.rand([1]+[1] + list(tensor.shape[2:]))
-        mask[mask<prop] = 0
-        mask[mask!=0] = 1
-        mask = mask.repeat(1,3,1,1)
-        deconstructed = tensor * mask
-        return mask, deconstructed
-    
     def denoise(self, mask, deconstructed):
-        deconstructed = self._np_to_tensor(deconstructed).float()
-        self.tensor_to_jpg(deconstructed, '../deconstructed.jpg')
-        mask = self._np_to_tensor(mask).float()
-        self.tensor_to_jpg(mask, '../mask.jpg')
-        #convert the image and mask to variables.
         mask = Variable(mask)
         deconstructed = Variable(deconstructed)
-    
+
         #input of the network is noise
         if self.use_cuda:
             noise = Variable(torch.randn(deconstructed.shape).cuda())
         else:
             noise = Variable(torch.randn(deconstructed.shape))
-    
-        #initialise the network with the chosen architecture
+
+        #initialize the network with the chosen architecture
         net = PixelShuffleHourglass()
-        #net = UNet(3, 3)
-    
+
         #bind the network to the gpu if cuda is enabled
         if self.use_cuda:
             net.cuda()
+
         #network optimizer set up
         optimizer = torch.optim.Adam(net.parameters(), lr=1e-4)
-    
-        #dummy index to provide names to output files
-        save_img_ind = 0
+
+        result = None
         for step in range(self.num_steps):
             #get the network output
             output = net(noise)
@@ -142,16 +52,18 @@ class Denoiser(object):
             masked_output = output * mask
             # calculate the l2_loss over the masked output and take an optimizer step
             optimizer.zero_grad()
-            loss = torch.sum((masked_output - deconstructed)**2)
-            #loss = torch.sum((output - deconstructed)**2)
+            loss = torch.sum((masked_output - deconstructed) ** 2)
             loss.backward()
             optimizer.step()
-            #every save_frequency steps, save a jpg
-            print('At step {}, loss is {}'.format(step, loss.data.cpu()))
-            if step % self.save_frequency == 0:
-                output_path = '{}/output_{}.jpg'.format(self.output_dir, save_img_ind)
-                self.tensor_to_jpg(output.data, output_path)
-                save_img_ind += 1
+
+            loss_value = loss.data.cpu().tolist()
+            print('At step {}, loss is {}'.format(step, loss_value))
+
+            result = output.data
+
+            if loss_value < self.min_loss:
+                return result
+
             if self.use_cuda:
                 noise.data += self.sigma * torch.randn(noise.shape).cuda()
             else:
@@ -160,6 +72,8 @@ class Denoiser(object):
         #clean up any mess we're leaving on the gpu
         if self.use_cuda:
             torch.cuda.empty_cache()
+
+        return result
 
 #define an encoder decoder network with pixel shuffle upsampling
 class PixelShuffleHourglass(nn.Module):
@@ -286,8 +200,13 @@ class PixelShuffleHourglass(nn.Module):
 
 
 if __name__=='__main__':
-    denoiser = Denoiser('output')
-    #mask, deconstructed = NoiseGenerator().gaussian(Image.open('../bunny_512.jpg'))
-    mask, deconstructed = NoiseGenerator().salt(Image.open('../bunny_512.jpg'))
-    denoiser.denoise(mask, deconstructed)
-    
+    denoiser = Denoiser()
+    pil = Image.open('../results/bunny_512.jpg')
+    tensor = iu.pil_to_tensor(pil)
+    mask, noisy = iu.generate_noise(tensor, prop=0.5)
+    iu.tensor_to_file(noisy, 'noisy.jpg')
+    denoised = denoiser.denoise(mask, noisy)
+    if denoised is not None:
+        denoised = iu.tensor_to_pil(denoised)
+        denoised.save('denoised.jpg')
+
