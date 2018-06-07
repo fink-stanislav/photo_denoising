@@ -60,7 +60,8 @@ $(document).ready(function() {
 	        data: formData,
 	        success: function (data) {
 	            $("#remove_noise").removeClass("is-loading")
-	            $("#download").attr("href", 'download/' + data['result'])
+	            $("#download").attr("href", 'download/' + data['denoised_image'])
+	            $("#denoised_image").attr("src", 'get_image/' + data['denoised_image'])
 	        },
 	        error: function (data) {
 	            $("#remove_noise").removeClass("is-loading")

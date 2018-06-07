@@ -1,13 +1,11 @@
 
 from flask import Blueprint, render_template, request, session, jsonify
 
-from PIL import Image
-import numpy as np
-
-import time
 from flask.helpers import send_file, send_from_directory
 import tempfile
 import denoising.image_utils as iu
+import torch
+from denoising.deep_image_prior import Denoiser
 
 main = Blueprint('main', __name__)
 
@@ -19,6 +17,17 @@ def _get_filename_and_ext(filename):
         return filename, ext
     return filename, None
 
+def _get_filepath(filename):
+    filepath = '{}/{}'.format(tempfile.gettempdir(), filename)
+    return filepath
+
+def _get_filename_for_result(source_filename, result_name, ext=None):
+    if ext is not None:
+        filename = '{}_{}.{}'.format(source_filename, result_name, ext)
+    else:
+        filename = '{}_{}.bin'.format(source_filename, result_name)
+    return filename
+
 @main.route('/')
 def home():
     return render_template('index.html')
@@ -27,34 +36,44 @@ def home():
 def add_noise():
     imagefile = request.files.get('img', '')
 
-    filename, ext = _get_filename_and_ext(imagefile.filename)
-
-    if ext is not None: 
-        filepath = '{}/{}.{}'.format(tempfile.gettempdir(), filename, ext)
-    else:
-        filepath = '{}/{}'.format(tempfile.gettempdir(), filename)
-
+    filepath = _get_filepath(imagefile.filename)
+    source_filename, ext = _get_filename_and_ext(imagefile.filename)
     imagefile.save(filepath)
-    session['clear_image'] = filepath
+    session['source_filename'] = imagefile.filename
+    session['source_image'] = filepath
 
     tensor = iu.file_to_tensor(filepath)
     mask, noisy = iu.generate_noise(tensor)
 
-    if ext is not None:
-        filename = '{}_noisy.{}'.format(filename, ext)
-    else:
-        filename = '{}_noisy.png'.format(filename)
+    result_filename = _get_filename_for_result(source_filename, 'mask')
+    filepath = _get_filepath(result_filename)
+    torch.save(mask, filepath)
+    session['mask'] = filepath
 
-    filepath = '{}/{}'.format(tempfile.gettempdir(), filename)
+    result_filename = _get_filename_for_result(source_filename, 'noisy', ext)
+    filepath = _get_filepath(result_filename)
     iu.tensor_to_file(noisy, filepath)
+    session['noisy'] = filepath
 
-    json_dict = {'noisy_image': filename}
-
-    return jsonify(json_dict)
+    return jsonify({'noisy_image': result_filename})
 
 @main.route('/remove_noise', methods=['POST'])
 def remove_noise():
-    return render_template('index.html')
+    noisy_path = session['noisy']
+    noisy = iu.file_to_tensor(noisy_path)
+
+    mask_path = session['mask']
+    mask = torch.load(mask_path)
+
+    result = Denoiser(num_steps=100).denoise(mask, noisy)
+
+    source_filename = session['source_filename']
+    source_filename, ext = _get_filename_and_ext(source_filename)
+    result_filename = _get_filename_for_result(source_filename, 'denoised', ext)
+    filepath = _get_filepath(result_filename)
+    iu.tensor_to_file(result, filepath)
+
+    return jsonify({'denoised_image': result_filename})
 
 @main.route('/get_image/<filename>')
 def get_image(filename):
