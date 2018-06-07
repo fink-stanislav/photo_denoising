@@ -7,9 +7,9 @@ import cv2
 
 class TestPsnr(unittest.TestCase):
 
-    def psnr(self, target, r):
-        target_data = np.array(target, dtype=np.float64)
-        ref_data = np.array(r, dtype=np.float64)
+    def psnr(self, result, original):
+        target_data = np.array(result, dtype=np.float64)
+        ref_data = np.array(original, dtype=np.float64)
     
         diff = ref_data - target_data
         print(diff.shape)

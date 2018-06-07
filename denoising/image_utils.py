@@ -2,6 +2,36 @@
 from PIL import Image
 import torchvision
 import torch
+import numpy as np
+import math
+
+def _calc_valid_sizes(last_valid_size=16):
+    valid_sizes = [64 * i for i in range(1, last_valid_size + 1)]
+    return valid_sizes
+
+def calc_preferrable_size(w, h):
+    size = max([w, h])
+    valid_sizes = _calc_valid_sizes()
+    diffs = [abs(size - valid_size) for valid_size in valid_sizes]
+    index_min = np.argmin(diffs)
+    size = valid_sizes[index_min]
+    return size
+
+def resize(pil, w, h):
+    resized = pil.resize((w, h), Image.ANTIALIAS)
+    return resized
+
+def psnr(result, original):
+    target_data = np.array(result, dtype=np.float64)
+    ref_data = np.array(original, dtype=np.float64)
+
+    diff = ref_data - target_data
+    print(diff.shape)
+    diff = diff.flatten('C')
+
+    rmse = math.sqrt(np.mean(diff ** 2.))
+
+    return 20 * math.log10(255 / rmse)
 
 def file_to_tensor(filepath, use_cuda=True):
     """

@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 import torch.nn.functional as F
-import torchvision
 
 from PIL import Image
 import denoising.image_utils as iu
@@ -15,14 +14,6 @@ class Denoiser(object):
         self.sigma = 1./30
         self.num_steps = num_steps
         self.min_loss = min_loss
-
-    def _np_to_tensor(self, np_data):
-        np_to_tensor = torchvision.transforms.Compose([torchvision.transforms.ToTensor()])
-        if self.use_cuda:
-            tensor = np_to_tensor(np_data).cuda()
-        else:
-            tensor = np_to_tensor(np_data)
-        return tensor.view([1] + list(tensor.shape))
 
     def denoise(self, mask, deconstructed):
         mask = Variable(mask)
@@ -99,13 +90,6 @@ class PixelShuffleHourglass(nn.Module):
 
         self.d_conv_6 = nn.Conv2d(128, 256, 5, stride=2, padding=2)
         self.d_bn_6 = nn.BatchNorm2d(256)
-        self.s_conv_6 = nn.Conv2d(256, 4, 5, stride=1, padding=2)
-        
-        self.d_conv_7 = nn.Conv2d(256, 512, 5, stride=2, padding=2)
-        self.d_bn_7 = nn.BatchNorm2d(512)
-        
-        self.u_conv_6 = nn.Conv2d(132, 256, 5, stride=1, padding=2)
-        self.u_bn_6 = nn.BatchNorm2d(256)
 
         self.u_conv_5 = nn.Conv2d(68, 128, 5, stride=1, padding=2)
         self.u_bn_5 = nn.BatchNorm2d(128)
@@ -125,6 +109,7 @@ class PixelShuffleHourglass(nn.Module):
         self.out_conv = nn.Conv2d(4, 3, 5, stride=1, padding=2)
         self.out_bn = nn.BatchNorm2d(3)
 
+        
     def forward(self, noise):
         down_1 = self.d_conv_1(noise)
         down_1 = self.d_bn_1(down_1)
@@ -152,19 +137,8 @@ class PixelShuffleHourglass(nn.Module):
         down_6 = self.d_conv_6(down_5)
         down_6 = self.d_bn_6(down_6)
         down_6 = F.leaky_relu(down_6)
-        skip_6 = self.s_conv_6(down_6)
-        
-        down_7 = self.d_conv_7(down_6)
-        down_7 = self.d_bn_7(down_7)
-        down_7 = F.leaky_relu(down_7)
-        
-        up_6 = F.pixel_shuffle(down_7, 2)
-        up_6 = torch.cat([up_6, skip_6], 1)
-        up_6 = self.u_conv_6(up_6)
-        up_6 = self.u_bn_6(up_6)
-        up_6 = F.leaky_relu(up_6)
 
-        up_5 = F.pixel_shuffle(up_6, 2)
+        up_5 = F.pixel_shuffle(down_6, 2)
         up_5 = torch.cat([up_5, skip_5], 1)
         up_5 = self.u_conv_5(up_5)
         up_5 = self.u_bn_5(up_5)
@@ -197,7 +171,6 @@ class PixelShuffleHourglass(nn.Module):
         out = self.out_bn(out)
         out = F.sigmoid(out)
         return out
-
 
 if __name__=='__main__':
     denoiser = Denoiser()

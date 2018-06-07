@@ -6,6 +6,7 @@ import tempfile
 import denoising.image_utils as iu
 import torch
 from denoising.deep_image_prior import Denoiser
+from PIL import Image
 
 main = Blueprint('main', __name__)
 
@@ -28,6 +29,27 @@ def _get_filename_for_result(source_filename, result_name, ext=None):
         filename = '{}_{}.bin'.format(source_filename, result_name)
     return filename
 
+def _square_image_if_required(filepath):
+    with Image.open(filepath) as pil:
+        w, h = pil.size
+        
+        size = iu.calc_preferrable_size(w, h)
+        
+        session['width'] = w
+        session['height'] = h
+            
+        iu.resize(pil, size, size).save(filepath)
+
+def _restore_image_size_if_required(filepath):
+    w = session['width']
+    h = session['height']
+
+    if w is None or h is None:
+        return
+
+    pil = Image.open(filepath)
+    iu.resize(pil, w, h).save(filepath)
+
 @main.route('/')
 def home():
     return render_template('index.html')
@@ -40,6 +62,9 @@ def add_noise():
     filepath = _get_filepath(imagefile.filename)
     source_filename, ext = _get_filename_and_ext(imagefile.filename)
     imagefile.save(filepath)
+
+    _square_image_if_required(filepath)
+
     session['source_filename'] = imagefile.filename
     session['source_image'] = filepath
 
@@ -76,6 +101,8 @@ def remove_noise():
     result_filename = _get_filename_for_result(source_filename, 'denoised', ext)
     filepath = _get_filepath(result_filename)
     iu.tensor_to_file(result, filepath)
+
+    _restore_image_size_if_required(filepath)
 
     return jsonify({'denoised_image': result_filename})
 
