@@ -35,6 +35,7 @@ def home():
 @main.route('/add_noise', methods=['POST'])
 def add_noise():
     imagefile = request.files.get('img', '')
+    intencity = float(request.form['intencity']) / 100
 
     filepath = _get_filepath(imagefile.filename)
     source_filename, ext = _get_filename_and_ext(imagefile.filename)
@@ -43,7 +44,7 @@ def add_noise():
     session['source_image'] = filepath
 
     tensor = iu.file_to_tensor(filepath)
-    mask, noisy = iu.generate_noise(tensor)
+    mask, noisy = iu.generate_noise(tensor, prop=intencity)
 
     result_filename = _get_filename_for_result(source_filename, 'mask')
     filepath = _get_filepath(result_filename)

@@ -71,5 +71,9 @@ $(document).ready(function() {
 	        processData: false
 	    });
 	});
-	
+
+	$("#intencity").on('input', function () {
+		$("#intencity_value").html(this.value + ' %')
+	})
+
 })
