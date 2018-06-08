@@ -32,12 +32,12 @@ def _get_filename_for_result(source_filename, result_name, ext=None):
 def _square_image_if_required(filepath):
     with Image.open(filepath) as pil:
         w, h = pil.size
-        
+
         size = iu.calc_preferrable_size(w, h)
-        
+
         session['width'] = w
         session['height'] = h
-            
+
         iu.resize(pil, size, size).save(filepath)
 
 def _restore_image_size_if_required(filepath):
@@ -92,7 +92,7 @@ def add_noise():
 def remove_noise():
     steps = int(request.form['steps'])
     min_loss = int(request.form['min_loss'])
-    
+
     noisy_path = session['noisy']
     noisy = iu.file_to_tensor(noisy_path)
 

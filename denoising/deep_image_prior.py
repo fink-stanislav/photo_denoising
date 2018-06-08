@@ -4,8 +4,6 @@ import torch.nn as nn
 from torch.autograd import Variable
 import torch.nn.functional as F
 
-from PIL import Image
-import denoising.image_utils as iu
 
 class Denoiser(object):
 
@@ -110,12 +108,11 @@ class PixelShuffleHourglass(nn.Module):
         self.out_conv = nn.Conv2d(4, image_channels, 5, stride=1, padding=2)
         self.out_bn = nn.BatchNorm2d(image_channels)
 
-        
     def forward(self, noise):
         down_1 = self.d_conv_1(noise)
         down_1 = self.d_bn_1(down_1)
         down_1 = F.leaky_relu(down_1)
-        
+
         down_2 = self.d_conv_2(down_1)
         down_2 = self.d_bn_2(down_2)
         down_2 = F.leaky_relu(down_2)
@@ -172,15 +169,3 @@ class PixelShuffleHourglass(nn.Module):
         out = self.out_bn(out)
         out = F.sigmoid(out)
         return out
-
-if __name__=='__main__':
-    denoiser = Denoiser()
-    pil = Image.open('../results/bunny_512.jpg')
-    tensor = iu.pil_to_tensor(pil)
-    mask, noisy = iu.generate_noise(tensor, prop=0.5)
-    iu.tensor_to_file(noisy, 'noisy.jpg')
-    denoised = denoiser.denoise(mask, noisy)
-    if denoised is not None:
-        denoised = iu.tensor_to_pil(denoised)
-        denoised.save('denoised.jpg')
-

@@ -45,7 +45,7 @@ $(document).ready(function() {
 	        processData: false
 	    });
 	});
-	
+
 	$("#remove_noise").click(function() {
 		$("#remove_noise").addClass("is-loading")
 		$("#remove_noise_form").submit()
