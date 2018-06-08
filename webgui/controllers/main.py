@@ -47,6 +47,7 @@ def _restore_image_size_if_required(filepath):
     if w is None or h is None:
         return
 
+    #TODO: remove unnecessary resize
     pil = Image.open(filepath)
     iu.resize(pil, w, h).save(filepath)
 

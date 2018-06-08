@@ -5,6 +5,7 @@ import torch
 import numpy as np
 import math
 
+
 def _calc_valid_sizes(last_valid_size=16):
     valid_sizes = [64 * i for i in range(1, last_valid_size + 1)]
     return valid_sizes
@@ -26,10 +27,12 @@ def psnr(result, original):
     ref_data = np.array(original, dtype=np.float64)
 
     diff = ref_data - target_data
-    print(diff.shape)
     diff = diff.flatten('C')
 
     rmse = math.sqrt(np.mean(diff ** 2.))
+
+    if rmse == 0.0:
+        return math.inf
 
     return 20 * math.log10(255 / rmse)
 
@@ -79,6 +82,6 @@ def generate_noise(tensor, prop=0.5, use_cuda=True):
         mask = torch.rand([1]+[1] + list(tensor.shape[2:]))
     mask[mask < prop] = 0
     mask[mask != 0] = 1
-    mask = mask.repeat(1, 3, 1, 1)
+    mask = mask.repeat(1, tensor.shape[1], 1, 1)
     deconstructed = tensor * mask
     return mask, deconstructed

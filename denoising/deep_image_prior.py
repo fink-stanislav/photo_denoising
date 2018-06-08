@@ -26,7 +26,8 @@ class Denoiser(object):
             noise = Variable(torch.randn(deconstructed.shape))
 
         #initialize the network with the chosen architecture
-        net = PixelShuffleHourglass()
+        image_channels = deconstructed.shape[1]
+        net = PixelShuffleHourglass(image_channels)
 
         #bind the network to the gpu if cuda is enabled
         if self.use_cuda:
@@ -68,9 +69,9 @@ class Denoiser(object):
 
 #define an encoder decoder network with pixel shuffle upsampling
 class PixelShuffleHourglass(nn.Module):
-    def __init__(self):
+    def __init__(self, image_channels):
         super(PixelShuffleHourglass, self).__init__()
-        self.d_conv_1 = nn.Conv2d(3, 8, 5, stride=2, padding=2)
+        self.d_conv_1 = nn.Conv2d(image_channels, 8, 5, stride=2, padding=2)
         self.d_bn_1 = nn.BatchNorm2d(8)
 
         self.d_conv_2 = nn.Conv2d(8, 16, 5, stride=2, padding=2)
@@ -106,8 +107,8 @@ class PixelShuffleHourglass(nn.Module):
         self.u_conv_1 = nn.Conv2d(4, 16, 5, stride=1, padding=2)
         self.u_bn_1 = nn.BatchNorm2d(16)
 
-        self.out_conv = nn.Conv2d(4, 3, 5, stride=1, padding=2)
-        self.out_bn = nn.BatchNorm2d(3)
+        self.out_conv = nn.Conv2d(4, image_channels, 5, stride=1, padding=2)
+        self.out_bn = nn.BatchNorm2d(image_channels)
 
         
     def forward(self, noise):
