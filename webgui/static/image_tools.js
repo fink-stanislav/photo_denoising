@@ -34,6 +34,7 @@ $(document).ready(function() {
 	        success: function (data) {
 	            $("#add_noise").removeClass("is-loading")
 	            $("#noisy_image").attr("src", 'get_image/' + data['noisy_image'])
+	            $("#noisy_psnr").html(data['psnr'])
 	        },
 	        error: function (data) {
 	            $("#add_noise").removeClass("is-loading")
@@ -62,6 +63,7 @@ $(document).ready(function() {
 	            $("#remove_noise").removeClass("is-loading")
 	            $("#download").attr("href", 'download/' + data['denoised_image'])
 	            $("#denoised_image").attr("src", 'get_image/' + data['denoised_image'])
+	            $("#denoised_psnr").html(data['psnr'])
 	        },
 	        error: function (data) {
 	            $("#remove_noise").removeClass("is-loading")

@@ -34,7 +34,7 @@ def psnr(result, original):
     if rmse == 0.0:
         return math.inf
 
-    return 20 * math.log10(255 / rmse)
+    return round(20 * math.log10(255 / rmse), 3)
 
 def file_to_tensor(filepath, use_cuda=True):
     """

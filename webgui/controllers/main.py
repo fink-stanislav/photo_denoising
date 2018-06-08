@@ -47,9 +47,10 @@ def _restore_image_size_if_required(filepath):
     if w is None or h is None:
         return
 
-    #TODO: remove unnecessary resize
     pil = Image.open(filepath)
-    iu.resize(pil, w, h).save(filepath)
+    _w, _h = pil.size
+    if w != _w or h != _h:
+        iu.resize(pil, w, h).save(filepath)
 
 @main.route('/')
 def home():
@@ -69,7 +70,8 @@ def add_noise():
     session['source_filename'] = imagefile.filename
     session['source_image'] = filepath
 
-    tensor = iu.file_to_tensor(filepath)
+    original = Image.open(filepath)
+    tensor = iu.pil_to_tensor(original)
     mask, noisy = iu.generate_noise(tensor, prop=intencity)
 
     result_filename = _get_filename_for_result(source_filename, 'mask')
@@ -79,10 +81,12 @@ def add_noise():
 
     result_filename = _get_filename_for_result(source_filename, 'noisy', ext)
     filepath = _get_filepath(result_filename)
-    iu.tensor_to_file(noisy, filepath)
+    noisy = iu.tensor_to_pil(noisy)
+    noisy.save(filepath)
     session['noisy'] = filepath
 
-    return jsonify({'noisy_image': result_filename})
+    psnr = iu.psnr(noisy, original)
+    return jsonify({'noisy_image': result_filename, 'psnr': psnr})
 
 @main.route('/remove_noise', methods=['POST'])
 def remove_noise():
@@ -98,14 +102,18 @@ def remove_noise():
     result = Denoiser(num_steps=steps, min_loss=min_loss).denoise(mask, noisy)
 
     source_filename = session['source_filename']
+    source_filepath = _get_filepath(source_filename)
     source_filename, ext = _get_filename_and_ext(source_filename)
     result_filename = _get_filename_for_result(source_filename, 'denoised', ext)
     filepath = _get_filepath(result_filename)
-    iu.tensor_to_file(result, filepath)
+    denoised_image = iu.tensor_to_pil(result)
+    denoised_image.save(filepath)
 
     _restore_image_size_if_required(filepath)
 
-    return jsonify({'denoised_image': result_filename})
+    original = Image.open(source_filepath)
+    psnr = iu.psnr(denoised_image, original)
+    return jsonify({'denoised_image': result_filename, 'psnr': psnr})
 
 @main.route('/get_image/<filename>')
 def get_image(filename):
