@@ -30,7 +30,8 @@ def _get_filename_for_result(source_filename, result_name, ext=None):
         filename = '{}_{}_{}.bin'.format(source_filename, _now(), result_name)
     return filename
 
-def _square_image_if_required(filepath):
+def _square_image_if_required(filename):
+    filepath = _get_filepath(filename)
     with Image.open(filepath) as pil:
         w, h = pil.size
 
@@ -44,7 +45,8 @@ def _square_image_if_required(filepath):
 
         iu.resize(pil, size, size).save(filepath)
 
-def _restore_image_size_if_required(filepath):
+def _restore_image_size_if_required(filename):
+    filepath = _get_filepath(filename)
     w = session['width']
     h = session['height']
 
@@ -70,46 +72,55 @@ def _save_source(imagefile):
     filepath = _get_filepath(imagefile.filename)
     source_filename, ext = _get_filename_and_ext(imagefile.filename)
     imagefile.save(filepath)
-    return filepath, source_filename, ext
+    return source_filename, ext
+
+def _save_mask(mask, filename, ext='bin'):
+    result_filename = _get_filename_for_result(filename, 'mask', ext=ext)
+    filepath = _get_filepath(result_filename)
+    torch.save(mask, filepath)
+    return result_filename
+
+def _save_noisy(noisy, filename, ext):
+    return _save_tensor_as_image(noisy, filename, 'noisy', ext)
+
+def _save_denoised(denoised, filename, ext):
+    return _save_tensor_as_image(denoised, filename, 'denoised', ext)
+
+def _save_tensor_as_image(tensor, filename, postfix, ext):
+    result_filename = _get_filename_for_result(filename, postfix, ext)
+    filepath = _get_filepath(result_filename)
+    tensor_image = iu.tensor_to_pil(tensor)
+    tensor_image.save(filepath)
+    return tensor_image, result_filename
 
 @main.route('/add_noise', methods=['POST'])
 def add_noise():
     imagefile = request.files.get('img', '')
     intencity = float(request.form['intencity']) / 100
 
-    filepath, source_filename, ext = _save_source(imagefile)
-
-    _square_image_if_required(filepath)
-
+    source_filename, ext = _save_source(imagefile)
     session['source_filename'] = '{}.{}'.format(source_filename, ext)
+    _square_image_if_required(session['source_filename'])
 
-    original = Image.open(filepath)
+    original = Image.open(_get_filepath(session['source_filename']))
     tensor = iu.pil_to_tensor(original)
     mask, noisy = iu.generate_noise(tensor, prop=intencity)
 
-    result_filename = _get_filename_for_result(source_filename, 'mask')
-    filepath = _get_filepath(result_filename)
-    torch.save(mask, filepath)
-    session['mask'] = filepath
-
-    result_filename = _get_filename_for_result(source_filename, 'noisy', ext)
-    filepath = _get_filepath(result_filename)
-    noisy = iu.tensor_to_pil(noisy)
-    noisy.save(filepath)
-    session['noisy'] = filepath
+    session['mask'] = _save_mask(mask, source_filename)
+    noisy, session['noisy'] = _save_noisy(noisy, source_filename, ext)
 
     psnr = iu.psnr(noisy, original)
-    return jsonify({'noisy_image': result_filename, 'psnr': psnr})
+    return jsonify({'noisy_image': session['noisy'], 'psnr': psnr})
 
 @main.route('/remove_noise', methods=['POST'])
 def remove_noise():
     steps = int(request.form['steps'])
     min_loss = int(request.form['min_loss'])
 
-    noisy_path = session['noisy']
+    noisy_path = _get_filepath(session['noisy'])
     noisy = iu.file_to_tensor(noisy_path)
 
-    mask_path = session['mask']
+    mask_path = _get_filepath(session['mask'])
     mask = torch.load(mask_path)
 
     result = Denoiser(num_steps=steps, min_loss=min_loss).denoise(mask, noisy)
@@ -117,15 +128,12 @@ def remove_noise():
     source_filename = session['source_filename']
     source_filepath = _get_filepath(source_filename)
     source_filename, ext = _get_filename_and_ext(source_filename)
-    result_filename = _get_filename_for_result(source_filename, 'denoised', ext)
-    filepath = _get_filepath(result_filename)
-    denoised_image = iu.tensor_to_pil(result)
-    denoised_image.save(filepath)
+    denoised, result_filename = _save_denoised(result, source_filename, ext)
 
-    _restore_image_size_if_required(filepath)
+    _restore_image_size_if_required(result_filename)
 
     original = Image.open(source_filepath)
-    psnr = iu.psnr(denoised_image, original)
+    psnr = iu.psnr(denoised, original)
     return jsonify({'denoised_image': result_filename, 'psnr': psnr})
 
 @main.route('/get_image/<filename>')
