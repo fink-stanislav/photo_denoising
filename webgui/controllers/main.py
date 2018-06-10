@@ -7,6 +7,7 @@ import denoising.image_utils as iu
 import torch
 from denoising.deep_image_prior import Denoiser
 from PIL import Image
+import time
 
 main = Blueprint('main', __name__)
 
@@ -24,9 +25,9 @@ def _get_filepath(filename):
 
 def _get_filename_for_result(source_filename, result_name, ext=None):
     if ext is not None:
-        filename = '{}_{}.{}'.format(source_filename, result_name, ext)
+        filename = '{}_{}_{}.{}'.format(source_filename, result_name, _now(), ext)
     else:
-        filename = '{}_{}.bin'.format(source_filename, result_name)
+        filename = '{}_{}_{}.bin'.format(source_filename, _now(), result_name)
     return filename
 
 def _square_image_if_required(filepath):
@@ -38,6 +39,9 @@ def _square_image_if_required(filepath):
         session['width'] = w
         session['height'] = h
 
+        if w == h and w == size:
+            return
+
         iu.resize(pil, size, size).save(filepath)
 
 def _restore_image_size_if_required(filepath):
@@ -47,28 +51,37 @@ def _restore_image_size_if_required(filepath):
     if w is None or h is None:
         return
 
-    pil = Image.open(filepath)
-    _w, _h = pil.size
-    if w != _w or h != _h:
+    with Image.open(filepath) as pil:
+        _w, _h = pil.size
+
+        if w == _w and h == _h:
+            return
+
         iu.resize(pil, w, h).save(filepath)
+
+def _now():
+    return str(int(time.time() * 100))
 
 @main.route('/')
 def home():
     return render_template('index.html')
+
+def _save_source(imagefile):
+    filepath = _get_filepath(imagefile.filename)
+    source_filename, ext = _get_filename_and_ext(imagefile.filename)
+    imagefile.save(filepath)
+    return filepath, source_filename, ext
 
 @main.route('/add_noise', methods=['POST'])
 def add_noise():
     imagefile = request.files.get('img', '')
     intencity = float(request.form['intencity']) / 100
 
-    filepath = _get_filepath(imagefile.filename)
-    source_filename, ext = _get_filename_and_ext(imagefile.filename)
-    imagefile.save(filepath)
+    filepath, source_filename, ext = _save_source(imagefile)
 
     _square_image_if_required(filepath)
 
-    session['source_filename'] = imagefile.filename
-    session['source_image'] = filepath
+    session['source_filename'] = '{}.{}'.format(source_filename, ext)
 
     original = Image.open(filepath)
     tensor = iu.pil_to_tensor(original)
