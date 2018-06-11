@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 class Denoiser(object):
 
-    def __init__(self, num_steps=5001, min_loss=500, use_cuda=True):
+    def __init__(self, num_steps=5000, min_loss=1, use_cuda=True):
         self.use_cuda = use_cuda
         self.sigma = 1./30
         self.num_steps = num_steps

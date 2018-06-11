@@ -115,7 +115,6 @@ def add_noise():
 @main.route('/remove_noise', methods=['POST'])
 def remove_noise():
     steps = int(request.form['steps'])
-    min_loss = int(request.form['min_loss'])
 
     noisy_path = _get_filepath(session['noisy'])
     noisy = iu.file_to_tensor(noisy_path)
@@ -123,7 +122,7 @@ def remove_noise():
     mask_path = _get_filepath(session['mask'])
     mask = torch.load(mask_path)
 
-    result = Denoiser(num_steps=steps, min_loss=min_loss).denoise(mask, noisy)
+    result = Denoiser(num_steps=steps).denoise(mask, noisy)
 
     source_filename = session['source_filename']
     source_filepath = _get_filepath(source_filename)

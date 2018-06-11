@@ -13,7 +13,7 @@
           Image denoising
         </h1>
         <h2 class="subtitle">
-          The application is able to denoise given image
+          The application for denoising an image with known noise bitmask
         </h2>
       </div>
     </div>
@@ -23,7 +23,7 @@
 	<div class="container">
 	  <h1 class="title">Adding noise</h1>
 	  <h2 class="subtitle">
-	    In order to be denoised a noise should be added to an image. Please upload a clear image using a form below. 
+	    In order to be denoised a noise should be added to an image. Please upload a clear image and add a noise to it using a form below. 
 	  </h2>
 
       <div class="columns is-centered">
@@ -69,7 +69,7 @@
     <div class="container">
   	  <h1 class="title">Removing noise</h1>
 	  <h2 class="subtitle">
-	    In order to denoise an image the image, denoising method should be executed.
+	    In order to denoise an image the image, execute the denoising method using a form below.
 	  </h2>
 	  <div class="columns is-centered">
         <div class="column is-narrow">
@@ -79,11 +79,6 @@
 
 		<div class="column is-narrow">
           <form id="remove_noise_form" action="/remove_noise" enctype="multipart/form-data" method="POST">
-            <div class="field column">
-              <label class="label">Min loss to stop</label>
-              <input id="min_loss" name="min_loss" type="range" min="1" max="5000" step="1" value="500">
-              <span id="min_loss_value">500</span>
-            </div>
             <div class="field column">
               <label class="label">Number of steps</label>
               <input id="steps" name="steps" type="range" min="1" max="25000" step="1" value="5000">
