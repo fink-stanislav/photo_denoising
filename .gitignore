@@ -1,13 +1,15 @@
 .pydevproject
 .project
 .metadata
-.settings/
+.settings/**
 
-results/
+results/**
 
 *.pyc
 
 build/**
 dist/**
-ats.egg-info/**
+denoiser.egg-info/**
+denoiser_env/**
+__pycache__/**
 
