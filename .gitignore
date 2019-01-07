@@ -13,3 +13,4 @@ denoiser.egg-info/**
 denoiser_env/**
 __pycache__/**
 
+.idea/*
