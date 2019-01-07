@@ -3,15 +3,19 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 import torch.nn.functional as F
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+import denoising.image_utils as iu
+from os.path import join as jp
 
 
 class Denoiser(object):
 
-    def __init__(self, num_steps=5000, min_loss=1, use_cuda=True):
+    def __init__(self, intermediate_results_folder, num_steps=5000, min_loss=1, use_cuda=True):
         self.use_cuda = use_cuda
         self.sigma = 1./30
         self.num_steps = num_steps
         self.min_loss = min_loss
+        self.intermediate_results_folder = intermediate_results_folder
 
     def denoise(self, mask, deconstructed):
         mask = Variable(mask)
@@ -33,6 +37,7 @@ class Denoiser(object):
 
         #network optimizer set up
         optimizer = torch.optim.Adam(net.parameters(), lr=1e-4)
+        scheduler = ReduceLROnPlateau(optimizer, 'min', patience=500, factor=0.5, min_lr=1e-8, verbose=True)
 
         result = None
         for step in range(self.num_steps):
@@ -47,9 +52,16 @@ class Denoiser(object):
             optimizer.step()
 
             loss_value = loss.data.cpu().tolist()
-            print('At step {}, loss is {}'.format(step, loss_value))
+            scheduler.step(loss_value)
 
             result = output.data
+
+            if step % 250 == 0:
+                tensor_image = iu.tensor_to_pil(result)
+                tensor_image.save(jp(self.intermediate_results_folder, 'denoised_{}.png'.format(str(step))))
+                tensor_image.save(jp(self.intermediate_results_folder, 'denoised_.png'))
+                torch.save(net, jp(self.intermediate_results_folder, 'model_{}.pb'.format(str(step))))
+                print('At step {}, loss is {}'.format(step, loss_value))
 
             if loss_value < self.min_loss:
                 return result

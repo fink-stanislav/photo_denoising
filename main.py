@@ -10,7 +10,7 @@ if __name__ == '__main__':
     steps = 100000000
 
     base_folder = jp('/', 'home', 'developer', 'photo_restoration', 'data')
-    results_index = 3
+    results_index = 6
 
     result_folder = jp(base_folder, 'results_{}'.format(str(results_index)))
     if os.path.isdir(result_folder):
@@ -19,12 +19,12 @@ if __name__ == '__main__':
     else:
         os.mkdir(result_folder)
 
-    crops_img_index = 4
-    crop_index = 1
-    use_crops = True
+    crops_img_index = 49
+    crop_index = 2
+    use_crops = False
 
-    mask_filename = 'mask.png'
-    image_filename = 'noisy_image.png'
+    mask_filename = 'IMG-0.png'
+    image_filename = 'test_noisy.png'
 
     if use_crops:
         base_folder = jp(base_folder, 'crops_{}'.format(str(crop_index)))
